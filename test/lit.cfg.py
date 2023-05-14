@@ -26,16 +26,13 @@ if platform.system() == 'Windows':
                                      config.environment['PATH']))
         config.environment['PATH'] = path
 
-# Choose between lit's internal shell pipeline runner and a real shell.  If
-# LIT_USE_INTERNAL_SHELL is in the environment, we use that as an override.
-use_lit_shell = os.environ.get("LIT_USE_INTERNAL_SHELL")
-if use_lit_shell:
+if use_lit_shell := os.environ.get("LIT_USE_INTERNAL_SHELL"):
     # 0 is external, "" is default, and everything else is internal.
     execute_external = (use_lit_shell == "0")
 else:
     # Otherwise we default to internal on Windows and external elsewhere, as
     # bash on Windows is usually very slow.
-    execute_external = (not sys.platform in ['win32'])
+    execute_external = sys.platform not in ['win32']
 
 # testFormat: The test format to use to interpret tests.
 #
@@ -179,9 +176,7 @@ if config.i386_support == '1':
 
 # swift-api-extract config
 def find_swift_api_extract():
-    # look for the overwrite.
-    tool = os.getenv("TAPI_TEST_SWIFT_API_EXTRACT")
-    if tool:
+    if tool := os.getenv("TAPI_TEST_SWIFT_API_EXTRACT"):
         return tool
     try:
         cmd = subprocess.Popen(['xcrun', '-f', 'swift-api-extract'],
@@ -191,9 +186,7 @@ def find_swift_api_extract():
         res = cmd.wait()
     except OSError:
         res = -1
-    if res == 0 and out:
-        return out.decode()
-    return None
+    return out.decode() if res == 0 and out else None
 
 config.swift_api_extract = find_swift_api_extract()
 if config.swift_api_extract is not None:
@@ -210,15 +203,22 @@ config.sysroot = get_macos_sdk_path(config)
 lit_config.note('using SDKROOT: %r' % config.sysroot)
 
 config.substitutions.append( ('%inputs', config.inputs) )
-config.substitutions.append( ('%tapi-frontend', config.tapi_frontend + ' -no-colors') )
-config.substitutions.append( ('%tapi-binary-reader', config.tapi_binary_reader + ' -no-colors') )
+config.substitutions.append(
+    ('%tapi-frontend', f'{config.tapi_frontend} -no-colors')
+)
+config.substitutions.append(
+    ('%tapi-binary-reader', f'{config.tapi_binary_reader} -no-colors')
+)
 config.substitutions.append( ('%tapi-sdkdb', config.tapi_sdkdb) )
 config.substitutions.append( ('%tapi-run', config.tapi_run) )
 config.substitutions.append( ('%tapi', config.tapi) )
 config.substitutions.append( ('%sysroot', config.sysroot) )
 config.substitutions.append(
-    ('%hmaptool', "'%s' %s" % (config.python_executable,
-                             os.path.join(config.tapi_tools_dir, 'hmaptool'))))
+    (
+        '%hmaptool',
+        f"'{config.python_executable}' {os.path.join(config.tapi_tools_dir, 'hmaptool')}",
+    )
+)
 config.substitutions.append( ('%host-clang', config.host_compiler) )
 
 config.substitutions.append(

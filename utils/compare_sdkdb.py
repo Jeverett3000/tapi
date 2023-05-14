@@ -8,13 +8,15 @@ class SDKDBComparator:
     @staticmethod
     def diff(base, value, context=''):
         diff_type = type(value).__name__
-        diff_method = getattr(SDKDBComparator, "diff_" + diff_type, SDKDBComparator.diff_builtin)
+        diff_method = getattr(
+            SDKDBComparator, f"diff_{diff_type}", SDKDBComparator.diff_builtin
+        )
         return diff_method(base, value, context)
 
     @staticmethod
     def diff_builtin(base, value, context=''):
         if base != value:
-            print('SDKDB{} is not equal: {} vs {}'.format(context, base, value), end=' ')
+            print(f'SDKDB{context} is not equal: {base} vs {value}', end=' ')
             return False
         return True
 
@@ -22,9 +24,9 @@ class SDKDBComparator:
     def diff_dict(base, value, context=''):
         for key, entry in base.iteritems():
             if key not in value.keys():
-                print('key {} missing from dict {}'.format(key, context), end=' ')
+                print(f'key {key} missing from dict {context}', end=' ')
                 return False
-            if not SDKDBComparator.diff(entry, value[key], context + '[{}]'.format(key)):
+            if not SDKDBComparator.diff(entry, value[key], f'{context}[{key}]'):
                 return False
         return True
 
@@ -37,7 +39,9 @@ class SDKDBComparator:
                     context_name = new_value['name']
                 except KeyError:
                     pass
-            if not SDKDBComparator.diff(base_value, new_value, context + '[{}]'.format(context_name)):
+            if not SDKDBComparator.diff(
+                base_value, new_value, f'{context}[{context_name}]'
+            ):
                 return False
         return True
 
@@ -49,7 +53,7 @@ def compare_sdkdb_entry(baseline, value):
     equal &= SDKDBComparator.diff(baseline, value)
 
     if not equal:
-        print('in library {}'.format(name))
+        print(f'in library {name}')
 
     return equal
 
@@ -68,7 +72,7 @@ def compare_target_list(baseline, new_list):
             try:
                 compare_target = lookup_map[name]
             except KeyError:
-                print('Missing {} from SDKDB'.format(name))
+                print(f'Missing {name} from SDKDB')
                 return False
             else:
                 compare_sdkdb_entry(item, compare_target)
@@ -83,14 +87,13 @@ def compare_sdkdb(baseline, sdkdb):
     """compare two sdkdb objects"""
     for key, value in baseline.iteritems():
         if key == 'public':
-            if not is_sdkdb_public(sdkdb):
-                print('Comparing public to private is not supported')
-                return False
-            else:
+            if is_sdkdb_public(sdkdb):
                 continue
 
+            print('Comparing public to private is not supported')
+            return False
         if key not in sdkdb.keys():
-            print('Target {} missing from SDKDB'.format(key))
+            print(f'Target {key} missing from SDKDB')
             return False
 
         if not compare_target_list(value, sdkdb[key]):

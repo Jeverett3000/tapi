@@ -86,11 +86,11 @@ def extract_diagnostics(path):
             # All the files are expected to has main file name begin with tapi.
             continue
 
-        # 7000 is just a large number to ignore all the warnings from clang and only leave the ones from tapi.
-        # Number might need to be adjusted in the future.
-        selected_diags = [Diagnostics(d) for d in file_diag.get('diagnostics') if d.get('ID') > 7000]
-        return selected_diags
-
+        return [
+            Diagnostics(d)
+            for d in file_diag.get('diagnostics')
+            if d.get('ID') > 7000
+        ]
     return []
 
 
@@ -104,17 +104,17 @@ def main():
 
     files, missing = find_all_diag_file(args.records, args.update_layout)
 
-    results = sum([extract_diagnostics(p) for p in files], [])
+    results = sum((extract_diagnostics(p) for p in files), [])
 
     diags = []
     for d in results:
-        if d.level == 'warning' or d.level == 'error':
+        if d.level in ['warning', 'error']:
             diags.append(DiagGroup(d))
         else:
             diags[-1].addReason(d)
 
-    print("Found {} projects missing diagnostic files: {}".format(len(missing), missing))
-    print("Found {} errors/warnings:".format(len(diags)))
+    print(f"Found {len(missing)} projects missing diagnostic files: {missing}")
+    print(f"Found {len(diags)} errors/warnings:")
     for d in diags:
         d.print()
 
